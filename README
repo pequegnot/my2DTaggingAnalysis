@@ -1,0 +1,139 @@
+we are in /gridgroup/cms/pequegnot/gj/my2DTaggingAnalysis (you can copy this directory which contains everything you need, or create an my2DTaggingAnalysis directory and copy the files and directory needed on your own)
+
+Step 1 : generate the tree containing the informations you want to analyse and compare, both for data and MC.
+
+Code needed : 
+main code for data: 
+data2012_2DTagging_data.cpp
+
+main code for MC :
+data2012_2DTagging_MC.cpp
+
+common codes :
+common.h (code with the different functions common to several main codes)
+binning.h (contains the flavour binning and number of flavours, i. e. the tagger flavour number associated with the name of the flavour, and the 2D tagging zones binning and number of zones)
+
+classes used in data and MC main codes (called in common.h) :
+ptBinning.cpp
+ptBinning.h
+alphaBinning.cpp
+alphaBinning.h
+
+QG-Smearing :
+QGSyst.cpp
+QGSyst.h
+SystDatabase_doubleMin.txt
+
+Makefile to run the code :
+Makefile 
+
+files needed in inputs of the code :
+MC ROOTfiles : (you can only copy the one you need)
+input_rootfile/PhotonJet_G_PFlowAK5chs.root
+input_rootfile/PhotonJet_QCD_PFlowAK5chs.root (this is QCD EM-enriched)
+input_rootfile/PhotonJet_MC_TOT_PFlowAK5chs.root (this is QCD EM-enriched)
+
+Data ROOTfiles :
+input_rootfile/PhotonJet_Photon_Run2012_residuals_PFlowAK5chs.root 
+(or data without residuals : input_rootfile/PhotonJet_Photon_Run2012_PFlowAK5chs.root)
+
+
+Run the code :
+Create an images result directory in the main directory :
+>mkdir images2DTagging
+>cd images2DTagging/
+>mkdir 2DTaggingZones (will contain plots of 2DTaggingPlans for each flavour and each pt zones)
+>mkdir FlavourFractions (will contain plots of flavour jet percentages for each pt zones)
+
+Create an « output_rootfile » directory.
+
+Make sure that you are using the right input rootfile for the main codes. You can change the name of your output rootfile (which will be stored in the directory output_rootfile you created).
+For MC, choose the sample you want to run on : select the right input rootfile and choose a corresponding output rootfiles (both general and matrix rootfiles. 
+For example, if you want to run on MC gamma+jet only, do :
+TFile *f=TFile::Open("input_rootfile/PhotonJet_G_PFlowAK5chs.root");
+TFile *out_matrix = new TFile("output_rootfile/outputMatrix2DTagging_MC_G.root", "recreate");
+TFile *out = new TFile("output_rootfile/output2DTagging_MC_G.root", "recreate");
+
+
+gamma+jet
+input_rootfile/PhotonJet_G_PFlowAK5chs.root
+output_rootfile/outputMatrix2DTagging_MC_G.root
+output_rootfile/output2DTagging_MC_G.root
+
+QCD
+input_rootfile/PhotonJet_QCD_PFlowAK5chs.root
+output_rootfile/outputMatrix2DTagging_MC_QCD.root
+output_rootfile/output2DTagging_MC_QCD.root
+
+Total (G+QCD)
+input_rootfile/PhotonJet_MC_TOT_PFlowAK5chs.root
+output_rootfile/outputMatrix2DTagging_MC_TOT.root
+output_rootfile/output2DTagging_MC_TOT.root
+
+
+In the Makefile code, enter the name of the code you want to run :
+NAME = data2012_2DTagging_data  for data ;
+NAME = data2012_2DTagging_MC  for MC file ;
+
+In the terminal : 
+> make
+> ./data2012_2DTagging_MC > output_rootfile/MC_G.txt 
+
+
+
+
+
+Step 2 : 2DTagging analysis
+
+a) General plot results
+
+Copy the following directory in your main directory :
+/gridgroup/cms/pequegnot/gj/my2DTaggingAnalysis /my2DTaggingPlots
+
+Code needed :
+my2DTaggingPlots.C
+
+Rootfiles needed :
+the 2DTagging rootfiles you create in step 1 (data and MC), localised in my2DTaggingAnalysis /output_rootfile
+
+Run the code :
+In my2DTaggingAnalysis /my2DTaggingPlot, you will need an output directory containing your plot results :
+>mkdir plotsResult
+>cd plotsResult
+>mkdir fractionEvolution (will contain the evolution of the flavour fractions as a function of gammapt plots)
+>mkdir RmpfPerZonePerPt (will contain the different MPF responses per 2DTagging zones, filled with data and flavours MC. Each plots are done for each gammapt bin)
+>mkdir tagger (will contain the data/MC btag CSV and QGLikelihood taggers plots for each gammapt bin)
+>cd ..
+
+Modify the name and localisation of your rootfiles to be analysed. Then run the code with ROOT (you are in my2DTaggingAnalysis /my2DTaggingPlot):
+> root -l
+>.L ../ptBinning.cpp++
+>.L my2DTaggingPlots.C++
+> my2DTaggingPlots ()
+
+
+b) Apply the 2DTaggingMethod with 4x4 matrix (4 2DTaggingZones)
+
+Copy the directory /gridgroup/cms/pequegnot/gj/my2DTaggingAnalysis /my2DTaggingMethod in your main my2DTaggingAnalysis/ directory.
+
+>cd my2DTaggingMethod
+>ls
+matrix4x4  matrix6x4 (method not implemented yet)
+>cd matrix4x4
+
+Code needed :
+my2DTaggingMethod_4x4.C
+
+
+Rootfiles needed :
+the 2DTagging rootfiles you create in step 1 (data and MC), localised in my2DTaggingAnalysis /output_rootfile
+
+Run the code :
+In my2DTaggingAnalysis /my2DTaggingMethod/matrix4x4/, you will need an output directory containing your plot results :
+>mkdir plotsResult
+
+Modify the name and localisation of your rootfiles to be analysed. Then run the code with ROOT (you are in my2DTaggingAnalysis /my2DTaggingPlot):
+> root -l
+>.L ../../ptBinning.cpp++
+> .L my2DTaggingMethod.C++
+> my2DTaggingMethod ()
