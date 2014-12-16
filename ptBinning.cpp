@@ -82,13 +82,13 @@ void ptBinning::fillPtBins()
 
 void ptBinning::fill2DTaggingPtBins() 
 {
-	mPtBins.push_back(std::make_pair(40., 100.));
-	mPtBins.push_back(std::make_pair(100., 200.));
-	mPtBins.push_back(std::make_pair(200., 800.));
+  mPtBins.push_back(std::make_pair(40., 100.));
+  mPtBins.push_back(std::make_pair(100., 200.));
+  mPtBins.push_back(std::make_pair(200., 800.));
 
 	//stage M2
-// 	mPtBins.push_back(std::make_pair(40., 100.));
-// 	mPtBins.push_back(std::make_pair(100., 800.));
+/* 	mPtBins.push_back(std::make_pair(40., 100.));*/
+ 	/*mPtBins.push_back(std::make_pair(100., 800.));*/
 }
 
 
