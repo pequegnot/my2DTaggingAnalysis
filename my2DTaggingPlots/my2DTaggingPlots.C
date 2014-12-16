@@ -17,6 +17,7 @@
 #include <TLegend.h>
 #include <TStyle.h>
 #include <THStack.h>
+#include <TLatex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,9 @@
 
 #include "../ptBinning.h"
 #include "../alphaBinning.h"
-#include "../fitTools.h"
+//#include "../fitTools.h"
+
+#include "tdrstyle_mod14.C"
 
 void drawDataMcComparisonWithoutRatio(const string& canvasName, THStack *hsMc, TH1 *hMcG, TH1 *hMcQcd, TH1 *hMcTot, TH1 *hData, const string& Xtitle, const string& path, int inLogScale = 1, int i=0, string legendPos = "r"){
 	TCanvas *cCanvas = new TCanvas(canvasName.c_str(),canvasName.c_str());
@@ -88,12 +91,11 @@ void drawDataMcComparisonWithoutRatio(const string& canvasName, THStack *hsMc, T
 }
 
 
-void drawDataMcComparison_Flavour(TCanvas* cCanvas, THStack *hsMc, vector<TH1F*> vFlavourHisto, TH1 *hData, const string& path, string sXTitle, string sTitle, int withNoMatched = 1, int inLogScale = 1){
+void drawDataMcComparison_Flavour(THStack *hsMc, vector<TH1F*> vFlavourHisto, TH1 *hData, const string& path, string sXTitle, string sTitle, int withNoMatched = 1, int inLogScale = 1, int withRatio = 1){
 //*******************************************************************************************************
 // description: function which draws the response distrition for each 2DTagging zone, 
 //              both for data and MC (histogram containing the different flavour responses)
-// arguments: - cCanvas: canvas in which you draw the plots
-//            - hsMc: THStack containning the MC responses for each flavour
+// arguments: - hsMc: THStack containning the MC responses for each flavour
 //            - vFlavourHisto: vector containing each flavour response histogram
 //            - hData: data response distribution
 //            - path: where you want to save the plots
@@ -102,11 +104,12 @@ void drawDataMcComparison_Flavour(TCanvas* cCanvas, THStack *hsMc, vector<TH1F*>
 //            - withNoMatched: 1 if you want to include the no matched jets, 0 if you don't
 //            - inLogScale: 1 if you want to have log scale on Y axis, 0 if you don't
 //*******************************************************************************************************
-	cCanvas->cd();
+	TCanvas *cCanvas = new TCanvas("cCanvas","cCanvas");
+  cCanvas->cd();
 	cout<<"cCanvas->cd()"<<endl;
 	gStyle->SetOptStat(0);
 
-	TH1F *hMcTot = NULL;
+  TH1F *hMcTot = NULL;
 	if(withNoMatched == 1) {
 		hMcTot = (TH1F*)vFlavourHisto[getFlavourNumber()-1]->Clone();
 		cout<<"hMcTot created"<<endl;
@@ -119,74 +122,138 @@ void drawDataMcComparison_Flavour(TCanvas* cCanvas, THStack *hsMc, vector<TH1F*>
 		}
 	}
 
-	hsMc->Draw("hist"); 
-	hsMc->SetMinimum(0.1);
+  if(withRatio == 1) {
+    // Data / MC comparison
 
-	if(inLogScale == 0) {
-		Double_t ymax = 0.;
-		Double_t ymax_mc = hMcTot->GetMaximum();
-		Double_t ymax_data = hData->GetMaximum();
-		if(ymax_mc>=ymax_data) {
-			ymax = ymax_mc;
-		}
-		else ymax = ymax_data;
-		hsMc->SetMaximum(ymax*1.1);
-		//hData->GetYaxis()->SetRangeUser(0.,ymax*1.3);
-		gPad->RedrawAxis();
-	}
-	else if(inLogScale == 1) {
-		Double_t ymax = 0.;
-		Double_t ymax_mc = hMcTot->GetMaximum();
-		Double_t ymax_data = hData->GetMaximum();
-		if(ymax_mc>=ymax_data) {
-			ymax = ymax_mc;
-		}
-		else ymax = ymax_data;
-		hsMc->SetMaximum(ymax*100.);
-		//hData->GetYaxis()->SetRangeUser(0.,ymax*1.3);
-		gPad->RedrawAxis();
-	}
+    TPad* pad_hi = new TPad("pad_hi", "", 0., 0.33, 0.99, 0.99);
+    pad_hi->Draw();
+    //pad_hi->SetLogx();
+    pad_hi->SetLeftMargin(0.12);
+    pad_hi->SetBottomMargin(0.015);
 
-	hsMc->GetXaxis()->SetTitle(sXTitle.c_str());
-	hsMc->SetTitle(sTitle.c_str());
-	//cout<<"hsMc style"<<endl;
-	hData->Draw("pe1same");
-	hData->SetMarkerColor(1);
-	hData->SetLineColor(1);
-	hData->SetMarkerStyle(20);
-	//cout<<"hData style"<<endl;
-	hMcTot->SetFillColor(kBlack);
-	hMcTot->SetFillStyle(3001);
-	hMcTot->DrawCopy("e2same");
-	hMcTot->SetFillStyle(1001);
-	hMcTot->SetFillColor(47);
-	hMcTot->SetLineColor(1);
-	//cout<<"hMcTot style"<<endl;
-	//hMcTot->SetMarkerSize(0.8);
-	//cCanvas->SetLogy();
-	gPad-> SetLogy(inLogScale);	
-	gPad->RedrawAxis();
-	TLegend *aLegend = new TLegend(0.69,0.65,0.89,0.89);
-	aLegend->SetBorderSize(0);
-	if(withNoMatched == 1) {
-		for(int i=0; i<getFlavourNumber()-1; i++) {
-			aLegend->AddEntry(vFlavourHisto[i],getFlavourBinName(i).c_str(),"f");
-		}
-	}
-	else if(withNoMatched == 0 ) {
-		for(int i=0; i<getFlavourNumber()-2; i++) {
-			aLegend->AddEntry(vFlavourHisto[i],getFlavourBinName(i).c_str(),"f");
-		}
-	}
-	aLegend->AddEntry(hData,"Data 2012","p");
-	aLegend->SetFillStyle(0);
-	aLegend->Draw("SAME");
-	cCanvas->SaveAs(path.c_str());
-	hMcTot->Delete();
+    // Data / MC ratio
+    TPad* pad_lo = new TPad("pad_lo", "", 0., 0., 0.99, 0.33);
+    pad_lo->Draw();
+    //pad_lo->SetLogx();
+    pad_lo->SetLeftMargin(0.12);
+    pad_lo->SetTopMargin(1.);
+    pad_lo->SetBottomMargin(0.3);
+
+    pad_lo->cd();
+    TF1* ratioFit = new TF1("ratioFit", "[0]", hData->GetXaxis()->GetXmin(), hData->GetXaxis()->GetXmax());
+    ratioFit->SetParameter(0, 0.);
+    ratioFit->SetLineColor(46);
+    ratioFit->SetLineWidth(2);
+    TH1* h = (TH1F*)hData->Clone();
+    h->Divide(hMcTot);
+    h1_style_lo(h);
+    h->SetStats(1);
+    h->SetTitle("Data / MC");
+    h->SetXTitle(sXTitle.c_str());
+    h->SetYTitle("Data / MC");
+    h->SetMarkerSize(1.0);
+    h->SetMarkerColor(1);
+    h->SetLineColor(1);
+    h->SetMarkerStyle(20);
+    h->SetMaximum(2);
+    h->SetMinimum(0);
+
+
+    //for(int i=1;i<h->GetEntries();i++){
+    //h->SetBinError(i,sqrt(pow(hData->GetBinError(i)/hMc->GetBinContent(i),2)+pow(hMc->GetBinError(i)*hData->GetBinContent(i)/(pow(hMc->GetBinContent(i),2)),2)));
+    //}
+    h->Fit(ratioFit, "RQ");
+    h->GetYaxis()->SetRangeUser(-1,3);
+    double fitValue = ratioFit->GetParameter(0);
+    double fitError = ratioFit->GetParError(0);
+
+    TPaveText* fitlabel = new TPaveText(0.55, 0.77, 0.88, 0.83, "brNDC");
+    fitlabel->SetTextSize(0.08);
+    fitlabel->SetFillColor(0);
+    fitlabel->SetTextFont(43);
+    TString fitLabelText = TString::Format("Fit: %.3f #pm %.3f", fitValue, fitError);
+    fitlabel->AddText(fitLabelText);
+    fitlabel->Draw("same");
+
+    gStyle->SetOptFit(0);
+    h->Draw("PE1same");
+    gPad->RedrawAxis();
+
+    pad_hi->cd();
+  }
+
+
+
+  hsMc->Draw("hist"); 
+  h1_style_hi(hData);
+  hs_style_hi(hsMc);
+  hsMc->SetMinimum(0.1);
+
+  if(inLogScale == 0) {
+    Double_t ymax = 0.;
+    Double_t ymax_mc = hMcTot->GetMaximum();
+    Double_t ymax_data = hData->GetMaximum();
+    if(ymax_mc>=ymax_data) {
+      ymax = ymax_mc;
+    }
+    else ymax = ymax_data;
+    hsMc->SetMaximum(ymax*1.1);
+    //hData->GetYaxis()->SetRangeUser(0.,ymax*1.3);
+    gPad->RedrawAxis();
+  }
+  else if(inLogScale == 1) {
+    Double_t ymax = 0.;
+    Double_t ymax_mc = hMcTot->GetMaximum();
+    Double_t ymax_data = hData->GetMaximum();
+    if(ymax_mc>=ymax_data) {
+      ymax = ymax_mc;
+    }
+    else ymax = ymax_data;
+    hsMc->SetMaximum(ymax*100.);
+    //hData->GetYaxis()->SetRangeUser(0.,ymax*1.3);
+    gPad->RedrawAxis();
+  }
+
+  hsMc->GetXaxis()->SetTitle(sXTitle.c_str());
+  hsMc->SetTitle(sTitle.c_str());
+  //cout<<"hsMc style"<<endl;
+  hData->Draw("pe1same");
+  hData->SetMarkerColor(1);
+  hData->SetLineColor(1);
+  hData->SetMarkerStyle(20);
+  //cout<<"hData style"<<endl;
+  hMcTot->SetFillColor(kBlack);
+  hMcTot->SetFillStyle(3001);
+  hMcTot->DrawCopy("e2same");
+  hMcTot->SetFillStyle(1001);
+  hMcTot->SetFillColor(47);
+  hMcTot->SetLineColor(1);
+  //cout<<"hMcTot style"<<endl;
+  //hMcTot->SetMarkerSize(0.8);
+  //cCanvas->SetLogy();
+  gPad-> SetLogy(inLogScale);	
+  gPad->RedrawAxis();
+  TLegend *aLegend = new TLegend(0.69,0.65,0.89,0.89);
+  aLegend->SetBorderSize(0);
+  if(withNoMatched == 1) {
+    for(int i=0; i<getFlavourNumber()-1; i++) {
+      aLegend->AddEntry(vFlavourHisto[i],getFlavourBinName(i).c_str(),"f");
+    }
+  }
+  else if(withNoMatched == 0 ) {
+    for(int i=0; i<getFlavourNumber()-2; i++) {
+      aLegend->AddEntry(vFlavourHisto[i],getFlavourBinName(i).c_str(),"f");
+    }
+  }
+  aLegend->AddEntry(hData,"Data 2012","p");
+  aLegend->SetFillStyle(0);
+  aLegend->Draw("SAME");
+  cCanvas->SaveAs(path.c_str());
+  hMcTot->Delete();
 }
 
 
-void drawRmpfPerZone(TFile* afMC, TH1* hData, vector<int> aHistoColor, string aZoneName, string aPtName, TCanvas* aCanvas, int zoneBin, int isForLumi = 1, int withNoMatched = 1) {
+void drawRmpfPerZone(TFile* afMC, TH1* hData, vector<int> aHistoColor, string aZoneName, string aPtName, int zoneBin, int isForLumi = 1, int withNoMatched = 1, bool isMCTot = false) {
 //*******************************************************************************************************
 // description: function which retrieves the informations from the rootfiles to draw the response
 //              distrition for each 2DTagging zone, 
@@ -284,37 +351,49 @@ void drawRmpfPerZone(TFile* afMC, TH1* hData, vector<int> aHistoColor, string aZ
 		}		
 	}
 
-	string aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_woLogScale.pdf";
-	drawDataMcComparison_Flavour(aCanvas, hsMC, myFlavourVector, hData, aPath, aXTitle, aTitle.c_str(), withNoMatched, 0);
+	string aPath;
+  if (isMCTot) {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_TOT_woLogScale_physics.pdf";
+  } else {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_G_woLogScale_physics.pdf";
+  }
+	drawDataMcComparison_Flavour(hsMC, myFlavourVector, hData, aPath, aXTitle, aTitle.c_str(), withNoMatched, 0);
 
-	aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_wLogScale.pdf";
-	drawDataMcComparison_Flavour(aCanvas, hsMC, myFlavourVector, hData, aPath, aXTitle, aTitle.c_str(), withNoMatched, 1);
+  if (isMCTot) {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_TOT_wLogScale_physics.pdf";
+  } else {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_G_wLogScale_physics.pdf";
+  }
+	drawDataMcComparison_Flavour(hsMC, myFlavourVector, hData, aPath, aXTitle, aTitle.c_str(), withNoMatched, 1);
+
+  if (isMCTot) {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_TOT_woLogScale_physics.C";
+  } else {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_G_woLogScale_physics.C";
+  }
+  drawDataMcComparison_Flavour(hsMC, myFlavourVector, hData, aPath, aXTitle, aTitle.c_str(), withNoMatched, 0);
+
+  if (isMCTot) {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_TOT_wLogScale_physics.C";
+  } else {
+    aPath = "plotsResult/RmpfPerZonePerPt/Rmpf_" + aZoneName + "_" + aPtName + "_MC_G_wLogScale_physics.C";
+  }
+  drawDataMcComparison_Flavour(hsMC, myFlavourVector, hData, aPath, aXTitle, aTitle.c_str(), withNoMatched, 1);
 
 	hMcTot->Delete();
 }
 
 
 
-void drawFlavourFraction(TFile* afMC, vector<int> aHistoColor, string path) {
+void drawFlavourFraction(vector<TH1F*> vHisto, vector<int> aHistoColor, string path, string zoneName = "", bool isMCTot = false) {
 //*******************************************************************************************************
 // description: function which draws the evolution of the flavour fractions as a function of gammapt
-// arguments: - afMC: MC rootfile containning informations we want to extract
+// arguments: - vHisto: vector containing the gammapt histo for each flavour 
 //            - aHistoColor: vector containing the flavour colour code
 //            - path: where you want to save the plot
 //*******************************************************************************************************
-	vector<TH1F*> vHisto;
-	int nflavours = getFlavourNumber();
-
-	//first retrieve the TH1
-	for(int i=0; i<nflavours; i++){
-		string histoNameMC;
-		histoNameMC = "gammapt_Flavour/Gammapt_" + getFlavourBinName(i);
-		//cout<<histoNameMC<<endl;
-		vHisto.push_back((TH1F*)afMC->Get(histoNameMC.c_str()));
-		h1_style(vHisto[i]);
-	}	
-//******************************************************************************************
 	
+  int nflavours = getFlavourNumber();
 	THStack* hsPtGamma = new THStack("hsPtGamma","Distribution of p_{t}^{#gamma}");
 	for(int i=nflavours-2; i>=0; i--) {
 		hsPtGamma->Add(vHisto[i]);
@@ -323,12 +402,12 @@ void drawFlavourFraction(TFile* afMC, vector<int> aHistoColor, string path) {
 
 	}
 	
-	//draw the histo we have just retrieved to check what there is in
+	//draw the histo we have in vector to check what there is in
 	TCanvas *cGammaPt = new TCanvas("cGammaPt","cGammaPt");
 	cGammaPt->cd();
 	gStyle->SetOptStat(0);	
 	hsPtGamma->Draw("hist"); 
-	hsPtGamma->SetMinimum(0.0001);
+	hsPtGamma->SetMinimum(0.00001);
 	hsPtGamma->GetXaxis()->SetTitle("p_{t}^{#gamma}");
 	vHisto[nflavours-1]->SetFillColor(kBlack);
 	vHisto[nflavours-1]->SetFillStyle(3001);
@@ -343,71 +422,137 @@ void drawFlavourFraction(TFile* afMC, vector<int> aHistoColor, string path) {
 	}
 	lGammaPt->SetFillColor(0);
 	lGammaPt->Draw("SAME");
-	cGammaPt->SaveAs("plotsResult/fractionEvolution/flavourGammapt.pdf");
 
+  string aName;
+  if (zoneName == "") {
+    aName = "plotsResult/fractionEvolution/flavourGammapt_physics";
+  } else {
+    aName = "plotsResult/fractionEvolution/flavourGammapt_" + zoneName + "_physics";
+  }
+
+  string aPath;
+  if (isMCTot) {
+    aPath = aName + "_MC_TOT.pdf";
+  } else {
+    aPath = aName + "_MC_G.pdf";
+  }
+	cGammaPt->SaveAs(aPath.c_str());
+  if (isMCTot) {
+    aPath = aName + "_MC_TOT.C";
+  } else {
+    aPath = aName + "_MC_G.C";
+  }
+	cGammaPt->SaveAs(aPath.c_str());
 
 //******************************************************************************************
 	//compute the flavour fractions and their errors from the TH1
-	int NbinPt = vHisto[nflavours-1]->GetNbinsX();
-	cout<<"NbinPt : "<<NbinPt<<endl;
-	float aPtBin[NbinPt];
-	float aPtBinError[NbinPt];
-	vector<float*> vFraction;
-	vector<float*> vFractionError;
+
+  vector<TH1*> vHistoFrac;
+  vHistoFrac.resize(nflavours-1);
+  double binning[] = {0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390, 420, 800};
+  TH1* all_rebin = vHisto[nflavours-1]->Rebin(15, "tot", binning);
 	for(int i=0; i<nflavours-1; i++) {
-		vFraction.push_back(new float[NbinPt]);
-		vFractionError.push_back(new float[NbinPt]);
+    std::string newName = getFlavourBinName(i);
+    vHistoFrac[i] = vHisto[i]->Rebin(15, newName.c_str(), binning);
+    vHistoFrac[i]->Divide(all_rebin);
+   	vHistoFrac[i]->SetMarkerStyle(20);
+   	vHistoFrac[i]->SetMarkerColor(aHistoColor[i]);
+   	vHistoFrac[i]->SetLineColor(aHistoColor[i]);
 	}
-	for ( int i=1 ;  i<=NbinPt ;  i++) {
-		aPtBin[i-1] = vHisto[nflavours-1]->GetBinCenter(i);
-		aPtBinError[i-1] = 0;
-		if(vHisto[nflavours-1]->GetBinContent(i) != 0.) {
-			for(int j=0; j<nflavours-1; j++) {
-				vFraction[j][i-1] = 100.*vHisto[j]->GetBinContent(i)/vHisto[nflavours-1]->GetBinContent(i);
-				//vFractionError[j][i-1] = 0.;
-				vFractionError[j][i-1] = 100.*sqrt(pow(vHisto[j]->GetBinError(i)/vHisto[nflavours-1]->GetBinContent(i),2) + pow(vHisto[nflavours-1]->GetBinError(i)*vHisto[j]->GetBinContent(i)/(pow(vHisto[nflavours-1]->GetBinContent(i),2)),2));
-				cout<<"aPtBin["<<i-1<<"] : "<<aPtBin[i-1]<<endl;
-				cout<<"aFraction["<<j<<"]["<<i-1<<"] : "<<vFraction[j][i-1]<<endl;
-				//cout<<"vFractionError["<<j<<"]["<<i-1<<"] : "<<vFractionError[j][i-1]<<endl;
-			}
-		}
-	}
-	vector<TGraphErrors*> vGraph;
-	TMultiGraph* mgFractionPerPtBin = new TMultiGraph();
-	for(int i=0; i<nflavours-1; i++) {
-		vGraph.push_back(new TGraphErrors(NbinPt,aPtBin, vFraction[i], aPtBinError, vFractionError[i]));
-		string graphName;
-		graphName = "gFraction_" + getFlavourBinName(i);
-		vGraph[i]->SetName(graphName.c_str());
-   	vGraph[i]->SetMarkerStyle(20);
-   	vGraph[i]->SetMarkerColor(aHistoColor[i]);
-   	vGraph[i]->SetLineColor(aHistoColor[i]);
-		mgFractionPerPtBin->Add(vGraph[i]);
-	}
-	TCanvas* cFractionPerPtBin = new TCanvas("cFractionPerPtBin","cFractionPerPtBin");
+
+  	TCanvas* cFractionPerPtBin = new TCanvas("cFractionPerPtBin","cFractionPerPtBin");
 	cFractionPerPtBin->cd();
-	mgFractionPerPtBin->Draw("APE");
-	TMultiGraph_style(mgFractionPerPtBin);
-	mgFractionPerPtBin->SetTitle("Flavour fractions with respect to p_{t}^{#gamma}");
-	mgFractionPerPtBin->GetXaxis()->SetRangeUser(30.,800.);
-	mgFractionPerPtBin->GetXaxis()->SetTitle("p_{t}^{#gamma} [GeV/c]");
-	mgFractionPerPtBin->GetYaxis()->SetTitle("flavour fraction (%)");
-	mgFractionPerPtBin->GetYaxis()->SetRangeUser(0,80);
+  vHistoFrac[0]->Draw("PE1");
+	for(int i=1; i<nflavours-1; i++) {
+    vHistoFrac[i]->Draw("PE1same");
+	}
+
+	vHistoFrac[0]->SetTitle("Flavour fractions with respect to p_{t}^{#gamma}");
+	vHistoFrac[0]->GetXaxis()->SetRangeUser(30.,800.);
+	vHistoFrac[0]->GetXaxis()->SetTitle("p_{t}^{#gamma} [GeV/c]");
+	vHistoFrac[0]->GetYaxis()->SetTitle("flavour fraction");
+  vHistoFrac[0]->GetYaxis()->SetTitleOffset(1.7);
+  vHistoFrac[0]->GetXaxis()->SetTitleOffset(1.5);
+	vHistoFrac[0]->GetYaxis()->SetRangeUser(0,1);
 	TLegend *lFractionPerPtBin = new TLegend(0.65,0.51,0.87,0.73);
-	//lFractionPerPtBin->SetBorderSize(0);
+  lFractionPerPtBin->SetBorderSize(0);
 	lFractionPerPtBin->SetFillColor(0);
 	lFractionPerPtBin->SetFillStyle(0);
 	lFractionPerPtBin->SetTextFont(42);
 	lFractionPerPtBin->SetTextSizePixels(24);
 	for(int i=0; i<nflavours-1; i++) {
-		lFractionPerPtBin->AddEntry(vGraph[i],getFlavourBinName(i).c_str(),"p");
+		lFractionPerPtBin->AddEntry(vHistoFrac[i],getFlavourBinName(i).c_str(),"p");
 	}
 	lFractionPerPtBin->Draw("same");
-	cFractionPerPtBin->SaveAs(path.c_str());
+  string fullPath = path + ".pdf";
+	cFractionPerPtBin->SaveAs(fullPath.c_str());
+  fullPath = path + ".C";
+	cFractionPerPtBin->SaveAs(fullPath.c_str());
+
+/*  int NbinPt = vHisto[nflavours-1]->GetNbinsX();*/
+  //cout<<"NbinPt : "<<NbinPt<<endl;
+  //float aPtBin[NbinPt];
+  //float aPtBinError[NbinPt];
+  //vector<float*> vFraction;
+  //vector<float*> vFractionError;
+  //for(int i=0; i<nflavours-1; i++) {
+    //vFraction.push_back(new float[NbinPt]);
+    //vFractionError.push_back(new float[NbinPt]);
+  //}
+  //for ( int i=1 ;  i<=NbinPt ;  i++) {
+    //aPtBin[i-1] = vHisto[nflavours-1]->GetBinCenter(i);
+    //aPtBinError[i-1] = 0;
+    //if(vHisto[nflavours-1]->GetBinContent(i) != 0.) {
+      //for(int j=0; j<nflavours-1; j++) {
+        //vFraction[j][i-1] = 100.*vHisto[j]->GetBinContent(i)/vHisto[nflavours-1]->GetBinContent(i);
+        ////vFractionError[j][i-1] = 0.;
+        //vFractionError[j][i-1] = 100.*sqrt(pow(vHisto[j]->GetBinError(i)/vHisto[nflavours-1]->GetBinContent(i),2) + pow(vHisto[nflavours-1]->GetBinError(i)*vHisto[j]->GetBinContent(i)/(pow(vHisto[nflavours-1]->GetBinContent(i),2)),2));
+        //cout<<"aPtBin["<<i-1<<"] : "<<aPtBin[i-1]<<endl;
+        //cout<<"aFraction["<<j<<"]["<<i-1<<"] : "<<vFraction[j][i-1]<<endl;
+        ////cout<<"vFractionError["<<j<<"]["<<i-1<<"] : "<<vFractionError[j][i-1]<<endl;
+      //}
+    //}
+  //}
+  //vector<TGraphErrors*> vGraph;
+  //TMultiGraph* mgFractionPerPtBin = new TMultiGraph();
+  //for(int i=0; i<nflavours-1; i++) {
+    //vGraph.push_back(new TGraphErrors(NbinPt,aPtBin, vFraction[i], aPtBinError, vFractionError[i]));
+    //string graphName;
+    //graphName = "gFraction_" + getFlavourBinName(i);
+    //vGraph[i]->SetName(graphName.c_str());
+     //vGraph[i]->SetMarkerStyle(20);
+     //vGraph[i]->SetMarkerColor(aHistoColor[i]);
+     //vGraph[i]->SetLineColor(aHistoColor[i]);
+    //mgFractionPerPtBin->Add(vGraph[i]);
+  //}
+
+  //TCanvas* cFractionPerPtBin = new TCanvas("cFractionPerPtBin","cFractionPerPtBin");
+  //cFractionPerPtBin->cd();
+  //mgFractionPerPtBin->Draw("APE");
+  //TMultiGraph_style(mgFractionPerPtBin);
+  //mgFractionPerPtBin->SetTitle("Flavour fractions with respect to p_{t}^{#gamma}");
+  //mgFractionPerPtBin->GetXaxis()->SetRangeUser(30.,800.);
+  //mgFractionPerPtBin->GetXaxis()->SetTitle("p_{t}^{#gamma} [GeV/c]");
+  //mgFractionPerPtBin->GetYaxis()->SetTitle("flavour fraction (%)");
+  //mgFractionPerPtBin->GetYaxis()->SetRangeUser(0,100);
+  //TLegend *lFractionPerPtBin = new TLegend(0.65,0.51,0.87,0.73);
+  //lFractionPerPtBin->SetBorderSize(0);
+  //lFractionPerPtBin->SetFillColor(0);
+  //lFractionPerPtBin->SetFillStyle(0);
+  //lFractionPerPtBin->SetTextFont(42);
+  //lFractionPerPtBin->SetTextSizePixels(24);
+  //for(int i=0; i<nflavours-1; i++) {
+    //lFractionPerPtBin->AddEntry(vGraph[i],getFlavourBinName(i).c_str(),"p");
+  //}
+  //lFractionPerPtBin->Draw("same");
+  //string fullPath = path + ".pdf";
+  //cFractionPerPtBin->SaveAs(fullPath.c_str());
+  //fullPath = path + ".C";
+  /*cFractionPerPtBin->SaveAs(fullPath.c_str());*/
 }
 
 
-void drawTagger(ptBinning aPtBinning, TFile* afMC, TH1* hData, vector<int> aHistoColor, string aTaggerName, string aPtName, TCanvas* aCanvas, int ptBin, int isForLumi = 1, int withNoMatched = 1, int inLogScale = 1) {
+void drawTagger(ptBinning aPtBinning, TFile* afMC, TH1* hData, vector<int> aHistoColor, string aTaggerName, string aPtName, int ptBin, int isForLumi = 1, int withNoMatched = 1, int inLogScale = 1) {
 //*************************************************************************************************
 // description: function which draws the flavour tagger (CSV or QGL) distributions for data and MC
 // arguments: - aPtBinning: object from the class 'ptBinning' to reconstruct the name of histo tyou want to 
@@ -477,8 +622,11 @@ void drawTagger(ptBinning aPtBinning, TFile* afMC, TH1* hData, vector<int> aHist
 	for(int i=0; i<nflavours-excluded; i++){
 		hsMC->Add(vHisto[i])	;
 	}		
-	string aPath = "plotsResult/tagger/" + aTaggerName + "_" + aPtName + ".pdf";
-	drawDataMcComparison_Flavour(aCanvas, hsMC, vHisto, hData, aPath.c_str(), aXTitle.c_str(), aTitle.c_str(), withNoMatched, inLogScale);		
+	string aPath = "plotsResult/tagger/" + aTaggerName + "_" + aPtName + "_physics.pdf";
+	drawDataMcComparison_Flavour(hsMC, vHisto, hData, aPath.c_str(), aXTitle.c_str(), aTitle.c_str(), withNoMatched, inLogScale, 0);		
+
+	aPath = "plotsResult/tagger/" + aTaggerName + "_" + aPtName + "_physics.C";
+	drawDataMcComparison_Flavour(hsMC, vHisto, hData, aPath.c_str(), aXTitle.c_str(), aTitle.c_str(), withNoMatched, inLogScale, 0);	
 
 	hMcTot->Delete();
 }
@@ -486,10 +634,15 @@ void drawTagger(ptBinning aPtBinning, TFile* afMC, TH1* hData, vector<int> aHist
 void my2DTaggingPlots () 
 {
 
-	TString innameMC_G="../output_rootfile/output2DTagging_MC_G.root";
-	TString innameMC_QCD="../output_rootfile/output2DTagging_MC_QCD.root";
+ /* TString innameMC_G="../output_rootfile/output2DTagging_MC_G.root";*/
+	//TString innameMC_QCD="../output_rootfile/output2DTagging_MC_QCD.root";
+	//TString innameData="../output_rootfile/output2DTagging_data.root";
+	/*TString innameMC_TOT="../output_rootfile/output2DTagging_MC_TOT.root";*/
+
+	TString innameMC_G="../output_rootfile/output2DTagging_MC_G_physics.root";
+	TString innameMC_QCD="../output_rootfile/output2DTagging_MC_QCD_physics.root";
 	TString innameData="../output_rootfile/output2DTagging_data.root";
-	TString innameMC_TOT="../output_rootfile/output2DTagging_MC_TOT.root";
+	TString innameMC_TOT="../output_rootfile/output2DTagging_MC_TOT_physics.root";
 
 // 	TString innameMC_G="../output_rootfile/output2DTagging_MC_G_stageM2.root";
 // 	TString innameMC_QCD="../output_rootfile/output2DTagging_MC_QCD_stageM2.root";
@@ -501,6 +654,8 @@ void my2DTaggingPlots ()
 	TFile *fMC_QCD=TFile::Open(innameMC_QCD);
 	TFile *fData=TFile::Open(innameData);
 	TFile *fMC_TOT=TFile::Open(innameMC_TOT);
+
+  setTDRStyle();
 
 	int isFor2DTagging = 1;
 	ptBinning my2DTaggingPtBinning(isFor2DTagging);
@@ -520,28 +675,67 @@ void my2DTaggingPlots ()
 	vector<vector<TH1F*> > vRmpf_PtZone_data;
 	vRmpf_PtZone_data.resize(nptbins);
 
-	TCanvas* cRespPerZone = new TCanvas();
-
-	for(int j=0; j<nptbins; j++) {
+  for(int j=0; j<nptbins; j++) {
 		vRmpf_PtZone_data[j].resize(nzones);
-		for(int i=0; i<nzones; i++) {			
+    for(int i=0; i<nzones; i++) {			
 			string ZoneName = getZoneBinName(i);
 			string PtName = my2DTaggingPtBinning.getName(j);
 			string histoNameData;
 			histoNameData = "response_Zone_Pt/Rmpf/Rmpf_" + ZoneName + "_" + PtName;
 			//cout<<histoNameData<<endl;
 			vRmpf_PtZone_data[j][i] = (TH1F*)fData->Get(histoNameData.c_str());
-			drawRmpfPerZone(fMC_G, vRmpf_PtZone_data[j][i], myHistoColor, ZoneName, PtName, cRespPerZone, i, isForLumi, withNoMatched);
+      drawRmpfPerZone(fMC_G, vRmpf_PtZone_data[j][i], myHistoColor, ZoneName, PtName, i, isForLumi, withNoMatched);
+      drawRmpfPerZone(fMC_TOT, vRmpf_PtZone_data[j][i], myHistoColor, ZoneName, PtName, i, isForLumi, withNoMatched, true);
 		}
 	}
-	cRespPerZone->Delete();
 
-	drawFlavourFraction(fMC_G, myHistoColor, "plotsResult/fractionEvolution/flavourFraction.pdf");
+	vector<TH1F*> vGammaPt_Flavour_MC_G;
+	vector<TH1F*> vGammaPt_Flavour_MC_TOT;
+
+	//first retrieve the TH1
+	for(int i=0; i<nflavours; i++){
+		string histoNameMC;
+		histoNameMC = "gammapt_Flavour/Gammapt_" + getFlavourBinName(i);
+		//cout<<histoNameMC<<endl;
+		vGammaPt_Flavour_MC_G.push_back((TH1F*)fMC_G->Get(histoNameMC.c_str()));
+		vGammaPt_Flavour_MC_TOT.push_back((TH1F*)fMC_TOT->Get(histoNameMC.c_str()));
+		h1_style(vGammaPt_Flavour_MC_G[i]);
+		h1_style(vGammaPt_Flavour_MC_TOT[i]);
+	}	
+
+  drawFlavourFraction(vGammaPt_Flavour_MC_G, myHistoColor, "plotsResult/fractionEvolution/flavourFraction_MC_G_physics");
+  drawFlavourFraction(vGammaPt_Flavour_MC_TOT, myHistoColor, "plotsResult/fractionEvolution/flavourFraction_MC_TOT_physics", "", true);
+
+	vector<vector<TH1F*> > vGammaPt_ZoneFlavour_MC_G;
+	vector<vector<TH1F*> > vGammaPt_ZoneFlavour_MC_TOT;
+  vGammaPt_ZoneFlavour_MC_G.resize(nzones);
+  vGammaPt_ZoneFlavour_MC_TOT.resize(nzones);
+
+	for(int j=0; j<nzones; j++) {
+		vGammaPt_ZoneFlavour_MC_G[j].resize(nflavours);
+		vGammaPt_ZoneFlavour_MC_TOT[j].resize(nflavours);
+		for(int i=0; i<nflavours; i++) {			
+			string ZoneName = getZoneBinName(j);
+			string FlavourName = getFlavourBinName(i);
+			string histoName;
+			histoName = "variables/gammaPtPerZonePerFlavour/Gammapt_" + ZoneName + "_" + FlavourName;
+			//cout<<histoName<<endl;
+			vGammaPt_ZoneFlavour_MC_G[j][i] = (TH1F*)fMC_G->Get(histoName.c_str());
+			vGammaPt_ZoneFlavour_MC_TOT[j][i] = (TH1F*)fMC_TOT->Get(histoName.c_str());
+		}
+	}
+
+	for(int j=0; j<nzones; j++) {
+			string ZoneName = getZoneBinName(j);
+			string histoName = "plotsResult/fractionEvolution/flavourFraction_MC_G_physics_" + ZoneName;
+      drawFlavourFraction(vGammaPt_ZoneFlavour_MC_G[j], myHistoColor, histoName, ZoneName);
+			histoName = "plotsResult/fractionEvolution/flavourFraction_MC_TOT_physics_" + ZoneName;
+      drawFlavourFraction(vGammaPt_ZoneFlavour_MC_TOT[j], myHistoColor, histoName, ZoneName, true);
+	}
+
 
 	vector<vector<TH1F*> > vTag_TaggerZone_data;
 	vTag_TaggerZone_data.resize(nptbins);
-
-	TCanvas* cTagger = new TCanvas();
 
 	for(int j=0; j<nptbins; j++) {
 		vTag_TaggerZone_data[j].resize(nzones);
@@ -554,7 +748,7 @@ void my2DTaggingPlots ()
 			vTag_TaggerZone_data[j][i] = (TH1F*)fData->Get(histoNameData.c_str());
 			if(TaggerName=="QGL") inLogScale = 0;
 			else if(TaggerName=="CSV") inLogScale = 1;
-			drawTagger(my2DTaggingPtBinning, fMC_G, vTag_TaggerZone_data[j][i], myHistoColor, TaggerName, PtName, cTagger, j, isForLumi, withNoMatched, inLogScale);
+      drawTagger(my2DTaggingPtBinning, fMC_G, vTag_TaggerZone_data[j][i], myHistoColor, TaggerName, PtName, j, isForLumi, withNoMatched, inLogScale);
 		}
 	}
 
@@ -594,7 +788,9 @@ void my2DTaggingPlots ()
 	hGammaPt_MC_QCD->SetFillColor(5);
 	hGammaPt_MC_QCD->SetLineColor(1);
 
-	drawDataMcComparisonWithoutRatio("c1bis", hsMCgammapt, hGammaPt_MC_G, hGammaPt_MC_QCD, hGammaPt_MC_tot, hGammaPt_data, "p_{T}^{#gamma} [GeV/c]", "plotsResult/gammapt/cGammaPtTot2013_lumi_withoutRatio.pdf");
+  drawDataMcComparisonWithoutRatio("c1bis", hsMCgammapt, hGammaPt_MC_G, hGammaPt_MC_QCD, hGammaPt_MC_tot, hGammaPt_data, "p_{T}^{#gamma} [GeV/c]", "plotsResult/gammapt/cGammaPtTot2013_lumi_withoutRatio_physics.pdf");
+
+  drawDataMcComparisonWithoutRatio("c1bis", hsMCgammapt, hGammaPt_MC_G, hGammaPt_MC_QCD, hGammaPt_MC_tot, hGammaPt_data, "p_{T}^{#gamma} [GeV/c]", "plotsResult/gammapt/cGammaPtTot2013_lumi_withoutRatio_physics.C");
 
 //*************************************************************************************************
 //
@@ -631,7 +827,8 @@ void my2DTaggingPlots ()
 	hAlpha_MC_QCD->SetFillColor(5);
 	hAlpha_MC_QCD->SetLineColor(1);
 
-	drawDataMcComparisonWithoutRatio("c2", hsMCalpha, hAlpha_MC_G, hAlpha_MC_QCD, hAlpha_MC_tot, hAlpha_data, "#alpha", "plotsResult/alpha/cAlphaTot2013_lumi_withoutRatio.pdf",0);
+  drawDataMcComparisonWithoutRatio("c2", hsMCalpha, hAlpha_MC_G, hAlpha_MC_QCD, hAlpha_MC_tot, hAlpha_data, "#alpha", "plotsResult/alpha/cAlphaTot2013_lumi_withoutRatio_physics.pdf",0);
+  drawDataMcComparisonWithoutRatio("c2", hsMCalpha, hAlpha_MC_G, hAlpha_MC_QCD, hAlpha_MC_tot, hAlpha_data, "#alpha", "plotsResult/alpha/cAlphaTot2013_lumi_withoutRatio_physics.C",0);
 
 }
 

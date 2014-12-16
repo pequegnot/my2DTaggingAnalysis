@@ -43,15 +43,16 @@
 //#include "fitTools.h"
 #include "QGSyst.h"
 
+
 using namespace std;
 
 
 int main () 
 {
 //open input file
- TFile *f=TFile::Open("input_rootfile/PhotonJet_G_PFlowAK5chs.root");
-// 	TFile *f=TFile::Open("input_rootfile/PhotonJet_QCD_PFlowAK5chs.root");
-// 	TFile *f=TFile::Open("input_rootfile/PhotonJet_MC_TOT_PFlowAK5chs.root");
+ //TFile *f=TFile::Open("input_rootfile/PhotonJet_G_PFlowAK5chs.root");
+   //TFile *f=TFile::Open("input_rootfile/PhotonJet_QCD_PFlowAK5chs.root");
+   TFile *f=TFile::Open("input_rootfile/PhotonJet_MC_TOT_PFlowAK5chs.root");
 
  	
   	
@@ -92,6 +93,10 @@ int main ()
 	vector<TMatrixF> v6x4MatrixPt = buildMatrixPtVector(my2DTaggingPtBinning);
 
 //vectors for 2D tagging study
+  // gammapt per flavour per zone
+  std::vector<std::vector<TH1F*> > vGammaPt_ZoneFlavour = buildZoneFlavourVectorH1("Gammapt",30,0,800);
+  std::vector<std::vector<TH1F*> > vFirstJetPt_ZoneFlavour = buildZoneFlavourVectorH1("FirstJetPt",160,0,800);
+
 	//flavour fractions per pt
 	vector<TH1F*> vFractionHisto_Pt = buildPtVectorH1(my2DTaggingPtBinning,"FractionHisto",nflavours-1,0,nflavours-1) ;
 
@@ -163,13 +168,17 @@ int main ()
 	
 	for(int k=0; k<nflavours; k++) {
 		vGammapt_Flavour[k]->Sumw2();
+    for(int l=0; l<nzones; l++) {
+		  vGammaPt_ZoneFlavour[l][k]->Sumw2();
+		  vFirstJetPt_ZoneFlavour[l][k]->Sumw2();
+		}
 	}
 	
 
 	TH1F* hGammaPt=new TH1F("hGammaPt","hGammaPt",40,40,800);
 	hGammaPt->SetXTitle("p_{T}^{#gamma} [GeV/c]");
 	hGammaPt->Sumw2();
-	
+
 	TH1F* hFirstJetPt=new TH1F("hFirstJetPt","hFirstJetPt",50,0,1400);
 	hFirstJetPt->SetXTitle("1^{st} jet p_{T} [GeV/c]");
 	hFirstJetPt->Sumw2();
@@ -282,8 +291,8 @@ int main ()
 	float firstjetgeneta;
 	t_firstjetgen->SetBranchAddress("eta",&firstjetgeneta);
 	int firstjetgenpdgid;
-	t_firstjetgen->SetBranchAddress("parton_pdg_id",&firstjetgenpdgid);
-// 	t_firstjetgen->SetBranchAddress("parton_flavour",&firstjetgenpdgid);
+  t_firstjetgen->SetBranchAddress("parton_pdg_id",&firstjetgenpdgid); // physics definition
+   //t_firstjetgen->SetBranchAddress("parton_flavour",&firstjetgenpdgid); // algorithmic definition
 // 	TClonesArray *aneutrino_4vect = 0;
 // 	t_firstjetgen->SetBranchAddress("neutrinos",&aneutrino_4vect);
 
@@ -582,6 +591,7 @@ int main ()
 						hDeltaR_j1gamma->Fill(DeltaR_j1gamma,miscevent_weight);
 						hDeltaR_j2gamma->Fill(DeltaR_j2gamma,miscevent_weight);
 						hDeltaR_j1j2->Fill(DeltaR_j1j2,miscevent_weight);	
+
 		
 						if((firstjetbtag_csv>=0 && firstjetbtag_csv<=1) && (firstjetqg_tag_likelihood>=0 && firstjetqg_tag_likelihood<=1)) { 
 		//protection contre les jets non matches
@@ -592,9 +602,17 @@ int main ()
 							vCSV_FlavourPt[nflavours-1][bin2DTaggingPt]->Fill(firstjetbtag_csv,miscevent_weight);
 	
 							if(binZone!=-1) {
+                vGammaPt_ZoneFlavour[binZone][binFlavour]->Fill(gammapt,miscevent_weight);
+                vGammaPt_ZoneFlavour[binZone][nflavours-1]->Fill(gammapt,miscevent_weight);
+
+                if(gammapt>200.) {
+                  vFirstJetPt_ZoneFlavour[binZone][binFlavour]->Fill(firstjetpt,miscevent_weight);
+                  vFirstJetPt_ZoneFlavour[binZone][nflavours-1]->Fill(firstjetpt,miscevent_weight);
+                }
+
 								vRmpf_ZonePt[binZone][bin2DTaggingPt]->Fill(Rmpf,miscevent_weight);
 								vRtrue_ZonePt[binZone][bin2DTaggingPt]->Fill(Rtrue,miscevent_weight);
-	
+
 								vRmpf_ZoneFlavourPt[binZone][binFlavour][bin2DTaggingPt]->Fill(Rmpf,miscevent_weight);
 								vRtrue_ZoneFlavourPt[binZone][binFlavour][bin2DTaggingPt]->Fill(Rtrue,miscevent_weight);
 								vRmpf_ZoneFlavourPt[binZone][nflavours-1][bin2DTaggingPt]->Fill(Rmpf,miscevent_weight);
@@ -706,6 +724,14 @@ int main ()
 			cLikelihood_vs_csv->SaveAs(name2DTaggingPlan.c_str());
 			nameHisto = "";
 			name2DTaggingPlan = "";
+
+      name2DTaggingPlan = ("images2DTagging/2DTaggingZones/");
+      nameHisto = v2DTaggingPlan_FlavourPt[i][j]->GetTitle();
+			name2DTaggingPlan += nameHisto;
+			name2DTaggingPlan += ".C";
+			cLikelihood_vs_csv->SaveAs(name2DTaggingPlan.c_str());
+			nameHisto = "";
+			name2DTaggingPlan = "";
 // 			nameHisto_check = "";
 // 			name2DTaggingPlan_check = "";
 			histoName = "";
@@ -744,6 +770,18 @@ int main ()
 			nameHistoFraction = "";
 		}
 	} 
+
+	for(int j=0;j<n2DTaggingPtBins; j++) {
+		for(int i=0; i<nzones; i++) {
+			Nuds       = vFlavourNumber[i][0][j];
+			Ng         = vFlavourNumber[i][1][j];
+			Nc         = vFlavourNumber[i][2][j];
+			Nb         = vFlavourNumber[i][3][j];
+			NnoMatched = vFlavourNumber[i][4][j];
+			Ntot       = vFlavourNumber[i][5][j];
+			printLatexTableFlavourRatio(Nuds, Ng, Nc, Nb, NnoMatched, Ntot,vFractionHisto_Pt[j], nameFraction, my2DTaggingPtBinning, i, j);
+		}
+	}
 
 	for(int k=0; k<n2DTaggingPtBins; k++) {
 		for(int j=0; j<nflavours ; j++) {
@@ -819,10 +857,48 @@ int main ()
 //
 //*****************************************************************************************************
 
+  //TFile *out_mikko = new TFile("output_rootfile/output2DTagging_MC_G_forMikko_L5Corr_physics.root", "recreate");
+  //TFile *out_mikko = new TFile("output_rootfile/output2DTagging_MC_QCD_forMikko_L5Corr_physics.root", "recreate");
+  TFile *out_mikko = new TFile("output_rootfile/output2DTagging_MC_TOT_forMikko_L5Corr_physics.root", "recreate");
+
+	out_mikko->cd();	
+
+  TDirectory *firstJetPtPtDir = out_mikko->mkdir("firstJetPtPerZonePerFlavour","firstJetPtPerZonePerFlavour");
+  firstJetPtPtDir->cd();
+  for(int k=0; k<nflavours; k++) {
+    for(int l=0; l<nzones; l++) {
+		  vFirstJetPt_ZoneFlavour[l][k]->Write();
+		}
+	}
+
+ /* TDirectory *response_Zone_FlavourDir = out_mikko->mkdir("response_perZone_perFlavour","response_perZone_perFlavour");*/
+	//TDirectory *Rmpf_Zone_FavourDir = response_Zone_FlavourDir->mkdir("Rmpf","Rmpf");
+	//Rmpf_Zone_FavourDir->cd();
+		//for(int k=0; k<nflavours; k++) {
+			//for(int l=0; l<nzones; l++) {
+				//vRmpf_ZoneFlavourPt[l][k][n2DTaggingPtBins-1]->Write();
+			//}
+		//}
+	//TDirectory *Rtrue_Zone_FavourDir = response_Zone_FlavourDir->mkdir("Rtrue","Rtrue");
+	//Rtrue_Zone_FavourDir->cd();
+		//for(int k=0; k<nflavours; k++) {
+			//for(int l=0; l<nzones; l++) {
+				//vRtrue_ZoneFlavourPt[l][k][n2DTaggingPtBins-1]->Write();
+			//}
+		//}
+
+//TDirectory *response_Zone_PtDir_mikko = out_mikko->mkdir("response_perZone","response_perZone");
+	//TDirectory *Rmpf_Zone_PtDir_mikko = response_Zone_PtDir_mikko->mkdir("Rmpf","Rmpf");
+	//Rmpf_Zone_PtDir_mikko->cd();
+      //for(int i=0; i<nzones; i++) {
+			//vRmpf_ZonePt[i][n2DTaggingPtBins-1]->Write();
+		/*}*/
+  out_mikko->Close();
+
 	//write into the output file
-	TFile *out = new TFile("output_rootfile/output2DTagging_MC_G.root", "recreate");
-// 	TFile *out = new TFile("output_rootfile/output2DTagging_MC_TOT.root", "recreate");
-// 	TFile *out = new TFile("output_rootfile/output2DTagging_MC_QCD.root", "recreate");
+  //TFile *out = new TFile("output_rootfile/output2DTagging_MC_G_physics.root", "recreate");
+   TFile *out = new TFile("output_rootfile/output2DTagging_MC_TOT_physics.root", "recreate");
+   //TFile *out = new TFile("output_rootfile/output2DTagging_MC_QCD_physics.root", "recreate");
 
 	out->cd();	
 	TDirectory *response_Zone_PtDir = out->mkdir("response_Zone_Pt","response_Zone_Pt");
@@ -918,6 +994,15 @@ int main ()
 	hDeltaR_j1gamma->Write();
 	hDeltaR_j2gamma->Write();
 	hDeltaR_j1j2->Write();
+  TDirectory *gammaPtDir = variablesDir->mkdir("gammaPtPerZonePerFlavour","gammaPtPerZonePerFlavour");
+  gammaPtDir->cd();
+  for(int k=0; k<nflavours; k++) {
+    for(int l=0; l<nzones; l++) {
+		  vGammaPt_ZoneFlavour[l][k]->Write();
+		}
+	}
+
+
 
 	TDirectory *plan2DTaggingDir = out->mkdir("plan2DTagging","plan2DTagging");
 	plan2DTaggingDir->cd();

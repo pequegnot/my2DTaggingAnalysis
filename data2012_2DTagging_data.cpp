@@ -63,6 +63,7 @@ int main ()
 	ptBinning myPtBinning;
 	int isFor2DTagging = 1;
 	ptBinning my2DTaggingPtBinning(isFor2DTagging);
+  int n2DTaggingPtBins = my2DTaggingPtBinning.getSize();
 	
 //usefull variables
 	Double_t xlow = getHistoXlow();
@@ -464,6 +465,17 @@ int main ()
 //                                      Output file
 //
 //*********************************************************************************************************
+
+	TFile *out_mikko = new TFile("output_rootfile/output2DTagging_data_forMikko.root", "recreate");
+
+	out_mikko->cd();	
+TDirectory *response_Zone_PtDir_mikko = out_mikko->mkdir("response_perZone","response_perZone");
+	TDirectory *Rmpf_Zone_PtDir_mikko = response_Zone_PtDir_mikko->mkdir("Rmpf","Rmpf");
+	Rmpf_Zone_PtDir_mikko->cd();
+  		for(int i=0; i<nzones; i++) {
+			vRmpf_ZonePt[i][n2DTaggingPtBins-1]->Write();
+		}
+  out_mikko->Close();
 
 	//create the output file and write into it
 	TFile *out = new TFile("output_rootfile/output2DTagging_data.root", "recreate");
