@@ -48,8 +48,8 @@ using namespace std;
 int main () 
 {
 //open input file
-  	//TFile *f=TFile::Open("input_rootfile/PhotonJet_Photon_Run2012_residuals_PFlowAK5chs.root"); 
-		TFile *f=TFile::Open("input_rootfile/PhotonJet_Photon_Run2012_PFlowAK5chs.root"); 
+  	TFile *f=TFile::Open("input_rootfile/PhotonJet_Photon_Run2012_residuals_PFlowAK5chs.root"); 
+		//TFile *f=TFile::Open("input_rootfile/PhotonJet_Photon_Run2012_PFlowAK5chs.root"); 
  	
   	
 
@@ -459,7 +459,7 @@ int main ()
 //*********************************************************************************************************
 
 	//create the output file and write into it
-	TFile *out = new TFile("output_rootfile/output2DTagging_data_stageM2_woResiduals.root", "recreate");
+	TFile *out = new TFile("output_rootfile/output2DTagging_data_stageM2.root", "recreate");
 	
 	out->cd();	
 	TDirectory *response_Zone_PtDir = out->mkdir("response_Zone_Pt","response_Zone_Pt");
