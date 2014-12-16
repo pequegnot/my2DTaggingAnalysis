@@ -29,13 +29,151 @@
 #include "TMatrixFSym.h"
 #include "TMatrixFSparse.h"
 #include "TMatrixFLazy.h"
+#include "TColor.h"
+#include "TVirtualFitter.h"
 
 #include "../../binning.h"
 #include "../../common.h"
 
 #include "../../ptBinning.h"
 #include "../../alphaBinning.h"
-#include "../../fitTools.h"
+//#include "../../fitTools.h"
+
+#define BALANCING TColor::GetColor(217, 91, 67)
+#define MPF TColor::GetColor(192, 41, 66)
+
+void applyStyle() {
+
+  TStyle* style_ = new TStyle("drawBaseStyle", "");
+  style_->SetCanvasColor(0);
+  style_->SetPadColor(0);
+  style_->SetFrameFillColor(0);
+  style_->SetStatColor(0);
+  style_->SetOptStat(0);
+  style_->SetTitleFillColor(0);
+  style_->SetCanvasBorderMode(0);
+  style_->SetPadBorderMode(0);
+  style_->SetFrameBorderMode(0);
+  style_->SetPadBottomMargin(0.12);
+  style_->SetPadLeftMargin(0.12);
+
+  // For the canvas:
+  style_->SetCanvasBorderMode(0);
+  style_->SetCanvasColor(kWhite);
+  style_->SetCanvasDefH(600); //Height of canvas
+  style_->SetCanvasDefW(600); //Width of canvas
+  style_->SetCanvasDefX(0); //POsition on screen
+  style_->SetCanvasDefY(0);
+
+  // For the Pad:
+  style_->SetPadBorderMode(0);
+  // style_->SetPadBorderSize(Width_t size = 1);
+  style_->SetPadColor(kWhite);
+  style_->SetPadGridX(false);
+  style_->SetPadGridY(false);
+  style_->SetGridColor(0);
+  style_->SetGridStyle(3);
+  style_->SetGridWidth(1);
+
+  // For the frame:
+  style_->SetFrameBorderMode(0);
+  style_->SetFrameBorderSize(1);
+  style_->SetFrameFillColor(0);
+  style_->SetFrameFillStyle(0);
+  style_->SetFrameLineColor(1);
+  style_->SetFrameLineStyle(1);
+  style_->SetFrameLineWidth(1);
+
+  // Margins:
+  style_->SetPadTopMargin(0.05);
+  style_->SetPadBottomMargin(0.15);//0.13);
+  style_->SetPadLeftMargin(0.15);//0.16);
+  style_->SetPadRightMargin(0.05);//0.02);
+
+  // For the Global title:
+
+  style_->SetOptTitle(0);
+  style_->SetTitleFont(42);
+  style_->SetTitleColor(1);
+  style_->SetTitleTextColor(1);
+  style_->SetTitleFillColor(10);
+  style_->SetTitleFontSize(0.05);
+
+  // For the axis titles:
+
+  style_->SetTitleColor(1, "XYZ");
+  style_->SetTitleFont(42, "XYZ");
+  style_->SetTitleSize(0.05, "XYZ");
+  // style_->SetTitleXSize(Float_t size = 0.02); // Another way to set the size?
+  // style_->SetTitleYSize(Float_t size = 0.02);
+  style_->SetTitleXOffset(1.15);//0.9);
+  style_->SetTitleYOffset(1.4); // => 1.15 if exponents
+  // style_->SetTitleOffset(1.1, "Y"); // Another way to set the Offset
+
+  // For the axis labels:
+
+  style_->SetLabelColor(1, "XYZ");
+  style_->SetLabelFont(42, "XYZ");
+  style_->SetLabelOffset(0.007, "XYZ");
+  style_->SetLabelSize(0.045, "XYZ");
+
+  // For the axis:
+
+  style_->SetAxisColor(1, "XYZ");
+  style_->SetStripDecimals(kTRUE);
+  style_->SetTickLength(0.03, "XYZ");
+  style_->SetNdivisions(510, "XYZ");
+  style_->SetPadTickX(1); // To get tick marks on the opposite side of the frame
+  style_->SetPadTickY(1);
+
+  // Legend
+  style_->SetLegendBorderSize(1);
+  style_->SetLegendFillColor(kWhite);
+  style_->SetLegendFont(42);
+
+  style_->cd();
+
+}
+
+TPaveText* get_labelCMS(int legendQuadrant) {
+
+  if (legendQuadrant != 0 && legendQuadrant != 1 && legendQuadrant != 2 && legendQuadrant != 3) {
+    std::cout << "WARNING! Legend quadrant '" << legendQuadrant << "' not yet implemented for CMS label. Using 2." << std::endl;
+    legendQuadrant = 2;
+  }
+
+  float x1, y1, x2, y2;
+  if (legendQuadrant == 1) {
+    x1 = 0.12;
+    y1 = 0.95;
+    x2 = 0.95;
+    y2 = 1.;
+  } else if (legendQuadrant == 2) {
+    x1 = 0.25;
+    y1 = 0.86;
+    x2 = 0.42;
+    y2 = 0.92;
+  } else if (legendQuadrant == 3) {
+    x1 = 0.25;
+    y1 = 0.2;
+    x2 = 0.42;
+    y2 = 0.24;
+  } else if (legendQuadrant == 0) {
+    x1 = 0.17;
+    y1 = 0.963;
+    x2 = 0.65;
+    y2 = 0.985;
+  }
+
+
+  TPaveText* cmslabel = new TPaveText(x1, y1, x2, y2, "brNDC");
+  cmslabel->SetFillColor(kWhite);
+  cmslabel->SetTextSize(0.038);
+  cmslabel->SetTextFont(42);
+  cmslabel->AddText(Form("CMS Preliminary, #sqrt{s} = 8 TeV, L = 20 fb^{-1}"));
+  return cmslabel;
+
+}
 
 
 
@@ -59,6 +197,7 @@ void TGraph_flavourLabel(TGraph* g) {
 	g->GetXaxis()->LabelsOption("h");
 	g->GetXaxis()->SetLabelSize(0.055);
 }
+
 
 vector<TH1F*> getResponse_Zone_Pt(TFile* f, string aPtName) {
 	vector<TH1F*> vHisto;
@@ -998,6 +1137,331 @@ vector<TGraphErrors*> getMCTruth(TFile* afMC, string aPtName) {
 	return myVector;
 }
 
+TGraphErrors* getDataMcRatio(TGraphErrors* gData, TGraphErrors* gMc, int aNumberOfFlavourBins) {
+	Double_t x[aNumberOfFlavourBins];
+	Double_t ex[aNumberOfFlavourBins];
+	for(int j=0;j<aNumberOfFlavourBins; j++) {
+		ex[j] = 0.;
+	}
+	Double_t xratio[aNumberOfFlavourBins];
+	Double_t ydata[aNumberOfFlavourBins];
+	Double_t ymc[aNumberOfFlavourBins];
+	Double_t yr[aNumberOfFlavourBins];
+	Double_t eydata[aNumberOfFlavourBins];
+	Double_t eymc[aNumberOfFlavourBins];
+	Double_t eyr[aNumberOfFlavourBins];
+	
+	int nBins = 0;
+	for(int i=0; i<aNumberOfFlavourBins; i++) {
+		gMc->GetPoint(i,x[i],ymc[i]);
+		gData->GetPoint(i,x[i],ydata[i]);
+		eymc[i] = gMc->GetErrorY(i);
+		eydata[i] = gData->GetErrorY(i);
+	        if (ymc[i] == 0 || ydata[i] == 0)
+		  continue;
+		xratio[nBins] = x[i];
+		yr[nBins] = ydata[i]/ymc[i];
+		std::cout << yr[nBins] << std::endl;
+		eyr[nBins] = sqrt(pow(eydata[i]/ymc[i],2)+pow(eymc[i]*ydata[i]/(pow(ymc[i],2)),2));
+		nBins++;
+	}
+	
+	TGraphErrors *gDataMcratio = new TGraphErrors(nBins,xratio,yr,ex,eyr);
+	gDataMcratio->SetMarkerStyle(20);
+	gDataMcratio->SetMarkerColor(1);
+	gDataMcratio->SetLineColor(1);
+	gDataMcratio->SetMarkerSize(1.5);
+	//gDataMcratio->SetMaximum(1.08);
+	//gDataMcratio->SetMinimum(0.90);
+	//gDataMcratio->GetXaxis()->SetTitle(XTitle.c_str());
+	
+	return gDataMcratio;
+}
+
+void drawComparisonResponse(const string& canvasName, TGraphErrors* gtruth, TGraphErrors *gMC, TGraphErrors *gdata, const string& YTitle, const string& path, int ngraphs = 2, bool isForData = false, bool doFit = false) {
+
+  TMultiGraph *mg = new TMultiGraph();
+  TGraph_flavourLabel(gtruth);
+  TGraph_flavourLabel(gMC);
+  TGraph_flavourLabel(gdata);
+
+  if(ngraphs == 3) {
+    mg->Add(gtruth);
+    mg->Add(gMC);
+    mg->Add(gdata);
+  }
+  else if(ngraphs == 2 && isForData == false) {
+    mg->Add(gtruth);
+    mg->Add(gMC);
+  }
+  else if(ngraphs == 2 && isForData == true) {
+    mg->Add(gMC);
+    mg->Add(gdata);
+  }
+
+
+	TCanvas *cCanvas = new TCanvas(canvasName.c_str(),canvasName.c_str(), 600, 800);
+	cCanvas->cd();
+  	// Data / MC comparison
+  	TPad* pad_hi = new TPad("pad_hi", "", 0., 0.33, 0.99, 0.99);
+  	pad_hi->Draw();
+  	//pad_hi->SetLogx();
+  	pad_hi->SetLeftMargin(0.12);
+  	pad_hi->SetBottomMargin(0.015);
+
+  	// Data / MC ratio
+	TPad* pad_lo = new TPad("pad_lo", "", 0., 0., 0.99, 0.33);
+	pad_lo->Draw();
+	//pad_lo->SetLogx();
+	pad_lo->SetLeftMargin(0.12);
+	pad_lo->SetTopMargin(1.);
+	pad_lo->SetBottomMargin(0.3);
+	
+		
+  pad_hi->cd();
+
+  gStyle->SetOptStat(0);
+	//mg->SetMaximum(1.05);
+	//mg->SetMinimum(0.9);
+  mg->Draw("APE");
+  mg->GetXaxis()->SetTitleOffset(1.1);
+  mg->GetYaxis()->SetTitleOffset(1.3);
+  mg->GetYaxis()->SetTitleSize(0.045);
+  mg->GetXaxis()->SetLabelSize(0.);
+  mg->GetYaxis()->SetTitle(YTitle.c_str());
+  
+  //TMultiGraph_style(mg);
+  mg->GetXaxis()->SetNdivisions(4, kTRUE);
+
+  /*for(int i=0; i<getFlavourNumber()-2; i++) {
+    mg->GetXaxis()->SetBinLabel((gtruth->GetXaxis()->FindBin(i+1)),getFlavourBinName(i).c_str());
+  }*/
+  //mg->GetXaxis()->LabelsOption("h");
+  //mg->GetXaxis()->SetLabelSize(0.055);
+	//mg->GetXaxis()->SetLabelSize(0);
+	//mg->GetYaxis()->SetTitleOffset(1.3);
+	cCanvas->SetLogx(1);
+	
+	if(doFit) {
+   	  TF1* myLinFit = new TF1("myLinFit", "[0]*x + [1]", mg->GetXaxis()->GetXmin(),mg->GetXaxis()->GetXmax());
+      	  myLinFit->SetParameter(0.5, 1.);
+    	  myLinFit->SetLineColor(1);
+    	  myLinFit->SetLineWidth(2);
+
+	
+	  cCanvas->Update();
+	  gdata->Fit(myLinFit, "RQ");
+	  double linfitValue = myLinFit->GetParameter(0);
+    	  double linfitError = myLinFit->GetParError(0);
+		
+    	  TPaveText* linfitlabel = new TPaveText(0.55, 0.77, 0.88, 0.83, "brNDC");
+    	  linfitlabel->SetTextSize(0.035);
+    	  linfitlabel->SetFillColor(0);
+	  linfitlabel->SetTextFont(42);
+    	  TString linfitLabelText = TString::Format("Data slope: %.5f #pm %.5f", linfitValue, linfitError);
+    	  linfitlabel->AddText(linfitLabelText);
+    	  linfitlabel->Draw("same");
+
+    	  gPad->RedrawAxis();	
+	}
+	
+  	TLegend* legend = new TLegend(0.15, 0.08, 0.52, 0.25);
+  	legend->SetFillColor(kWhite);
+  	legend->SetFillStyle(0);
+	  legend->SetTextFont(42);
+  	legend->SetTextSize(0.038);
+    legend->SetBorderSize(0);
+		if(ngraphs == 3) {
+			legend->AddEntry(gtruth,"MC truth","p");
+			legend->AddEntry(gMC,"2D tagging MC","p");
+			legend->AddEntry(gdata,"2D tagging data","p");
+		}
+		else if(ngraphs == 2 && isForData == false) {
+			legend->AddEntry(gtruth,"MC truth","p");
+			legend->AddEntry(gMC,"2D tagging (MC)","p");
+		}
+		else if(ngraphs == 2 && isForData == true) {
+			legend->AddEntry(gMC,"2D tagging (MC)","p");
+			legend->AddEntry(gdata,"2D tagging (data)","p");
+		}
+
+	legend->Draw("same");
+		
+  	Float_t cmsTextSize = 0.043;
+  	TPaveText* label_cms = get_labelCMS(1);
+  	label_cms->SetTextSize(cmsTextSize);
+	label_cms->Draw("same");
+	gPad->RedrawAxis();
+		
+	pad_lo->cd();
+	TGraphErrors *gratio = NULL;
+  if (ngraphs == 3) {
+    // FIXME
+  }
+  else if (ngraphs == 2 && isForData == false) {
+    gratio = getDataMcRatio(gMC, gtruth, getFlavourNumber()-2);
+	  gratio->GetYaxis()->SetTitle("MC / MC truth");
+    gratio->SetName("MC / MC truth");
+	  //gratio->SetTitle("MC/MCtruth");
+  }
+  else if (ngraphs == 2 && isForData == true) {
+    gratio = getDataMcRatio(gdata, gMC, getFlavourNumber()-2);
+	  gratio->GetYaxis()->SetTitle("Data / MC");
+    gratio->SetName("Data / MC");
+	  //gratio->SetTitle("Data/MC");
+  }  
+
+  gratio->GetXaxis()->SetNdivisions(4,kTRUE);
+  for(int i=0; i<getFlavourNumber()-2; i++) {
+    gratio->GetXaxis()->SetBinLabel((gtruth->GetXaxis()->FindBin(i+1)),getFlavourBinName(i).c_str());
+  }
+  gratio->GetXaxis()->LabelsOption("h");
+	gratio->SetMarkerSize(1.5);
+  gratio->SetMarkerStyle(20);
+  gratio->SetMarkerColor(BALANCING);
+  gratio->SetLineColor(BALANCING);
+
+
+  gratio->GetXaxis()->SetTitleOffset(1.2);
+  gratio->GetYaxis()->SetTitleOffset(0.70);
+  gratio->GetXaxis()->SetTickLength(0.06);
+  gratio->GetXaxis()->SetMoreLogLabels();
+  gratio->GetXaxis()->SetNoExponent();
+  gratio->GetXaxis()->SetLabelOffset(0.02);
+  gratio->GetXaxis()->SetLabelSize(0.13);
+  gratio->GetYaxis()->SetLabelSize(0.07);
+  gratio->GetXaxis()->SetTitleSize(0.09);
+  gratio->GetYaxis()->SetTitleSize(0.08);
+  gratio->GetYaxis()->SetNdivisions(7,true);
+
+
+  //TGraph_style(gratio);
+	
+	gratio->GetXaxis()->SetLimits(mg->GetXaxis()->GetXmin(),mg->GetXaxis()->GetXmax());
+	
+	cCanvas->Update();
+  TF1* ratioFit = new TF1("ratioFit", "pol0", mg->GetXaxis()->GetXmin(), mg->GetXaxis()->GetXmax());
+  ratioFit->SetParameter(0, 1.);
+  //ratioFit->SetParameter(1, 0.);
+  ratioFit->SetLineColor(TColor::GetColor("#C02942"));
+  ratioFit->SetLineWidth(1.0);
+  gratio->Fit(ratioFit, "RQNF EX0");
+
+  double xMax = mg->GetXaxis()->GetXmax();
+  double xMin = mg->GetXaxis()->GetXmin();
+
+  TH1D* errors = new TH1D("errors", "errors", 100, xMin, xMax);
+  (TVirtualFitter::GetFitter())->GetConfidenceIntervals(errors, 0.68);
+  errors->SetStats(false);
+  //errors->SetFillColor(TColor::GetColor("#556270"));
+  errors->SetFillColor(TColor::GetColor("#ECD078"));
+  errors->SetFillStyle(1001);
+
+  double fitValue = ratioFit->GetParameter(0);
+  double fitError = ratioFit->GetParError(0);
+
+  //TString str = TString::Format("\\num{%.4f \\pm %.4f} & \\num{%.4f \\pm %.4f}", fitValue, fitError, 1. / fitValue, 1. / fitValue * fitError / fitValue);
+  //std::cout << str << std::endl;
+
+  float height = 0.81 - 0.77;
+  float labelYPos = 0.37;
+
+  TPaveText* fitlabel = new TPaveText(0.43, labelYPos, 0.78, labelYPos + height, "brNDC");
+  fitlabel->SetTextSize(0.08);
+  fitlabel->SetFillColor(0);
+  fitlabel->SetTextFont(42);
+  //TString fitLabelText = TString::Format("#font[42]{Fit: %.4f #pm %.4f + (%.2e #pm %.2e)x}", fitValue, fitError, ratioFit->GetParameter(1), ratioFit->GetParError(1));
+  TString fitLabelText = TString::Format("Fit: %.4f #pm %.4f", fitValue, fitError);
+  fitlabel->AddText(fitLabelText);
+
+	gratio->Draw("APE1");
+
+  errors->Draw("e3 same");
+
+  ratioFit->Draw("same");
+
+  fitlabel->Draw("same");
+
+  gratio->Draw("P same");
+
+  gPad->RedrawAxis();
+
+	cCanvas->SaveAs(path.c_str());
+}
+
+void drawGraph(TCanvas* aCanvas, TGraphErrors* gtruth, TGraphErrors* gMC, TGraphErrors* gdata, string YTitle, string path, int isRMS = 0, int ngraphs = 3) {
+//*******************************************************************************************************
+// description: function which draws the mean/RMS flavour responses comparison 
+// arguments: - aCanvas: canvas where you want to draw your plots
+//            - gtruth: TGraphErrors for MC truth (mean or RMS)
+//            - gMC: TGraphErrors for MC 2DTagging (mean or RMS)
+//            - gdata: TGraphErrors for data 2DTagging (mean or RMS)
+//            - YTitle: title of Y axis (depending if it is mean or RMS)
+//            - path: where you want to save the plot
+//            - isRMS: you have to precize if it is RMS plot (=1) or not (=0)
+//            - ngraphs: you can choose to draw only 2DTagging data and 2DTagging MC using ngraphs=2
+//*******************************************************************************************************
+ 		gStyle->SetOptStat(0);
+		TMultiGraph *mg = new TMultiGraph();
+		TGraph_flavourLabel(gtruth);
+		TGraph_flavourLabel(gMC);
+		TGraph_flavourLabel(gdata);
+   	aCanvas->cd();
+		aCanvas->Clear();
+
+		if(ngraphs == 3) {
+			mg->Add(gtruth);
+			mg->Add(gMC);
+			mg->Add(gdata);
+		}
+		else if(ngraphs == 2) {
+			mg->Add(gtruth);
+			mg->Add(gMC);
+			//mg->Add(gdata);
+		}
+
+
+   	mg->Draw("APE");
+		if(isRMS == 0) {
+    		mg->GetYaxis()->SetRangeUser(0.60,1.70);
+// 				mg->GetYaxis()->SetRangeUser(0.92,1.26);
+		}
+		else if(isRMS == 1) {
+//    		mg->GetYaxis()->SetRangeUser(0.08,0.18);
+		}
+
+
+   	mg->GetYaxis()->SetTitle(YTitle.c_str());
+   	//TMultiGraph_style(mg);
+   	mg->GetXaxis()->SetNdivisions(4,kTRUE);
+		for(int i=0; i<getFlavourNumber()-2; i++) {
+			mg->GetXaxis()->SetBinLabel((gtruth->GetXaxis()->FindBin(i+1)),getFlavourBinName(i).c_str());
+		}
+ 		mg->GetXaxis()->LabelsOption("h");
+ 		mg->GetXaxis()->SetLabelSize(0.055);
+
+		gPad->RedrawAxis();
+		TLegend *l = new TLegend(0.12,0.12,0.45,0.25);
+		//l->SetBorderSize(0);
+		l->SetFillColor(0);
+		l->SetFillStyle(0);
+		l->SetTextFont(42);
+		l->SetTextSizePixels(24);
+		if(ngraphs == 3) {
+			l->AddEntry(gtruth,"MC truth","p");
+			l->AddEntry(gMC,"2D tagging MC","p");
+			l->AddEntry(gdata,"2D tagging data","p");
+		}
+		else if(ngraphs == 2) {
+			l->AddEntry(gtruth,"MC truth","p");
+			l->AddEntry(gMC,"2D tagging MC","p");
+			//l->AddEntry(gdata,"2D tagging data","p");
+		}
+
+		l->Draw("same");
+		aCanvas->SaveAs(path.c_str());
+}
+
 void drawRelativGraph(TGraphErrors* gMC, TGraphErrors* gData, string aYTitle, string aPath) {
 //*******************************************************************************************************
 // description: function which draws the mean/RMS flavour responses comparison in relative difference
@@ -1073,88 +1537,23 @@ void drawRelativGraph(TGraphErrors* gMC, TGraphErrors* gData, string aYTitle, st
 	crelative->SaveAs(aPath.c_str());
 }
 
-void drawGraph(TCanvas* aCanvas, TGraphErrors* gtruth, TGraphErrors* gMC, TGraphErrors* gdata, string YTitle, string path, int isRMS = 0, int ngraphs = 3) {
-//*******************************************************************************************************
-// description: function which draws the mean/RMS flavour responses comparison 
-// arguments: - aCanvas: canvas where you want to draw your plots
-//            - gtruth: TGraphErrors for MC truth (mean or RMS)
-//            - gMC: TGraphErrors for MC 2DTagging (mean or RMS)
-//            - gdata: TGraphErrors for data 2DTagging (mean or RMS)
-//            - YTitle: title of Y axis (depending if it is mean or RMS)
-//            - path: where you want to save the plot
-//            - isRMS: you have to precize if it is RMS plot (=1) or not (=0)
-//            - ngraphs: you can choose to draw only 2DTagging data and 2DTagging MC using ngraphs=2
-//*******************************************************************************************************
- 		gStyle->SetOptStat(0);
-		TMultiGraph *mg = new TMultiGraph();
-		TGraph_flavourLabel(gtruth);
-		TGraph_flavourLabel(gMC);
-		TGraph_flavourLabel(gdata);
-   	aCanvas->cd();
-		aCanvas->Clear();
-
-		if(ngraphs == 3) {
-			mg->Add(gtruth);
-			mg->Add(gMC);
-			mg->Add(gdata);
-		}
-		else if(ngraphs == 2) {
-			mg->Add(gtruth);
-			mg->Add(gMC);
-			//mg->Add(gdata);
-		}
-
-
-   	mg->Draw("APE");
-		if(isRMS == 0) {
-    		mg->GetYaxis()->SetRangeUser(0.60,1.70);
-// 				mg->GetYaxis()->SetRangeUser(0.92,1.26);
-		}
-		else if(isRMS == 1) {
-//    		mg->GetYaxis()->SetRangeUser(0.08,0.18);
-		}
-
-
-   	mg->GetYaxis()->SetTitle(YTitle.c_str());
-   	TMultiGraph_style(mg);
-   	mg->GetXaxis()->SetNdivisions(4,kTRUE);
-		for(int i=0; i<getFlavourNumber()-2; i++) {
-			mg->GetXaxis()->SetBinLabel((gtruth->GetXaxis()->FindBin(i+1)),getFlavourBinName(i).c_str());
-		}
- 		mg->GetXaxis()->LabelsOption("h");
- 		mg->GetXaxis()->SetLabelSize(0.055);
-
-		gPad->RedrawAxis();
-		TLegend *l = new TLegend(0.12,0.12,0.45,0.25);
-		//l->SetBorderSize(0);
-		l->SetFillColor(0);
-		l->SetFillStyle(0);
-		l->SetTextFont(42);
-		l->SetTextSizePixels(24);
-		if(ngraphs == 3) {
-			l->AddEntry(gtruth,"MC truth","p");
-			l->AddEntry(gMC,"2D tagging MC","p");
-			l->AddEntry(gdata,"2D tagging data","p");
-		}
-		else if(ngraphs == 2) {
-			l->AddEntry(gtruth,"MC truth","p");
-			l->AddEntry(gMC,"2D tagging MC","p");
-			//l->AddEntry(gdata,"2D tagging data","p");
-		}
-
-		l->Draw("same");
-		aCanvas->SaveAs(path.c_str());
-}
-
 
 void my2DTaggingMethod_4x4 () 
 {
 
-	TString innameMC_G_matrix="../../output_rootfile/outputMatrix2DTagging_MC_TOT.root";
+	//TString innameMC_G_matrix="../../output_rootfile/outputMatrix2DTagging_MC_TOT.root";
+  TString innameMC_G_matrix="../../output_rootfile/outputMatrix2DTagging_MC_G_stageM2.root";
+
+  
+  
 	//TString innameMC_QCD_matrix="../../output_rootfile/outputMatrix2DTagging_MC_QCD.root";
-	TString innameData="../../output_rootfile/output2DTagging_data.root";
+	//TString innameData="../../output_rootfile/output2DTagging_data.root";
+  TString innameData="../../output_rootfile/output2DTagging_data_stageM2.root";
+  //TString innameData="../../../data2013/output_rootfile_rapport/data_finalizer_residuals_allPtGamma100_partonFlavour.root";
 // 	TString innameMC_TOT_matrix="../../output_rootfile/outputMatrix2DTagging_MC_TOT.root";
-	TString innameMC_G="../../output_rootfile/output2DTagging_MC_TOT.root";
+	//TString innameMC_G="../../output_rootfile/output2DTagging_MC_TOT.root";
+  TString innameMC_G="../../output_rootfile/output2DTagging_MC_G_stageM2.root";
+  //TString innameMC_G="../../../data2013/output_rootfile_rapport/MC_G_finalizer_allPtGamma100_partonFlavour.root";
 	//TString innameMC_QCD="../../output_rootfile/output2DTagging_MC_QCD.root";
 // 	TString innameMC_TOT="../../output_rootfile/output2DTagging_MC_TOT.root";
 
@@ -1167,6 +1566,7 @@ void my2DTaggingMethod_4x4 ()
 	//TFile *fMC_QCD=TFile::Open(innameMC_QCD);
 	//TFile *fMC_TOT=TFile::Open(innameMC_TOT);
 
+
 	int isFor2DTagging = 1;
 	ptBinning my2DTaggingPtBinning(isFor2DTagging);
 	int nptbins = my2DTaggingPtBinning.getSize();
@@ -1177,7 +1577,7 @@ void my2DTaggingMethod_4x4 ()
 	int isForLumi = 0 ;
 	int withNoMatched = 1 ;
 	int inLogScale = 1;
-	int withSystErrors = 0;
+	int withSystErrors = 1;
 
 	vector<int> myHistoColor = HistoColor();
 
@@ -1220,39 +1620,69 @@ void my2DTaggingMethod_4x4 ()
 		gRmpf_flavour_2Dtagging_Mean_MC = vMC[0]; 
 		gRmpf_flavour_2Dtagging_RMS_MC = vMC[1];
 
-		gRmpf_flavour_2Dtagging_Mean_MC->SetMarkerStyle(20);
-		gRmpf_flavour_2Dtagging_Mean_MC->SetMarkerColor(4);
-		gRmpf_flavour_2Dtagging_Mean_MC->SetLineColor(4);
+		gRmpf_flavour_2Dtagging_Mean_MC->SetMarkerStyle(24);
+		gRmpf_flavour_2Dtagging_Mean_MC->SetMarkerColor(MPF);
+		gRmpf_flavour_2Dtagging_Mean_MC->SetMarkerSize(2.0);
+		gRmpf_flavour_2Dtagging_Mean_MC->SetLineColor(MPF);
 	
-		gRmpf_flavour_2Dtagging_RMS_MC->SetMarkerStyle(20);
-		gRmpf_flavour_2Dtagging_RMS_MC->SetMarkerColor(4);
-		gRmpf_flavour_2Dtagging_RMS_MC->SetLineColor(4);
+		gRmpf_flavour_2Dtagging_RMS_MC->SetMarkerStyle(24);
+		gRmpf_flavour_2Dtagging_RMS_MC->SetMarkerColor(MPF);
+		gRmpf_flavour_2Dtagging_RMS_MC->SetMarkerSize(2.0);
+		gRmpf_flavour_2Dtagging_RMS_MC->SetLineColor(MPF);
 	
 		gRmpf_flavour_2Dtagging_Mean_data->SetMarkerStyle(20);
-		gRmpf_flavour_2Dtagging_Mean_data->SetMarkerColor(1);
-		gRmpf_flavour_2Dtagging_Mean_data->SetLineColor(1);
+		gRmpf_flavour_2Dtagging_Mean_data->SetMarkerColor(MPF);
+		gRmpf_flavour_2Dtagging_Mean_data->SetMarkerSize(2.0);
+		gRmpf_flavour_2Dtagging_Mean_data->SetLineColor(MPF);
 	
 		gRmpf_flavour_2Dtagging_RMS_data->SetMarkerStyle(20);
-		gRmpf_flavour_2Dtagging_RMS_data->SetMarkerColor(1);
-		gRmpf_flavour_2Dtagging_RMS_data->SetLineColor(1);
+		gRmpf_flavour_2Dtagging_RMS_data->SetMarkerColor(MPF);
+		gRmpf_flavour_2Dtagging_RMS_data->SetMarkerSize(2.0);
+		gRmpf_flavour_2Dtagging_RMS_data->SetLineColor(MPF);
 
-		path = "plotsResult/Mean_" + PtName + "_MCtot.pdf";
-		drawGraph(c2DTagging, gRmpf_flavour_MCtruth_Mean, gRmpf_flavour_2Dtagging_Mean_MC,gRmpf_flavour_2Dtagging_Mean_data, "Mean +/- Stat. Error", path.c_str(),0);
 
-		path = "plotsResult/RMS_" + PtName + "_MCtot.pdf";
+    gRmpf_flavour_MCtruth_Mean->SetMarkerStyle(20);
+		gRmpf_flavour_MCtruth_Mean->SetMarkerColor(MPF);
+		gRmpf_flavour_MCtruth_Mean->SetMarkerSize(2.0);
+		gRmpf_flavour_MCtruth_Mean->SetLineColor(MPF);
+	
+		gRmpf_flavour_MCtruth_RMS->SetMarkerStyle(20);
+		gRmpf_flavour_MCtruth_RMS->SetMarkerColor(MPF);
+		gRmpf_flavour_MCtruth_RMS->SetMarkerSize(2.0);
+		gRmpf_flavour_MCtruth_RMS->SetLineColor(MPF);
+
+		/*path = "plotsResult/Mean_" + PtName + "_MC.pdf";
+		drawGraph(c2DTagging, gRmpf_flavour_MCtruth_Mean, gRmpf_flavour_2Dtagging_Mean_MC, gRmpf_flavour_2Dtagging_Mean_data, "Mean +/- Stat. Error", path.c_str(),0);
+		
+    path = "plotsResult/RMS_" + PtName + "_MC.pdf";
 		drawGraph(c2DTagging, gRmpf_flavour_MCtruth_RMS, gRmpf_flavour_2Dtagging_RMS_MC,gRmpf_flavour_2Dtagging_RMS_data, "RMS +/- Stat. Error", path.c_str(),1);
 
-		path = "plotsResult/MeanRelative_" + PtName + "_MC_MCTruth_MCtot.pdf";
+
+		path = "plotsResult/MeanRelative_" + PtName + "_MC_MCTruth_MC.pdf";
 		drawRelativGraph(gRmpf_flavour_MCtruth_Mean, gRmpf_flavour_2Dtagging_Mean_MC, "Mean relative difference (%)", path.c_str());
 		
-		path = "plotsResult/RMSRelative_" + PtName + "_MC_MCTruth_MCtot.pdf";
+		path = "plotsResult/RMSRelative_" + PtName + "_MC_MCTruth_MC.pdf";
 		drawRelativGraph(gRmpf_flavour_MCtruth_RMS, gRmpf_flavour_2Dtagging_RMS_MC, "RMS relative difference (%)", path.c_str());
 		
-		path = "plotsResult/MeanRelative_" + PtName + "_MC_data_MCtot.pdf";
+		path = "plotsResult/MeanRelative_" + PtName + "_MC_data_MC.pdf";
 		drawRelativGraph(gRmpf_flavour_2Dtagging_Mean_MC, gRmpf_flavour_2Dtagging_Mean_data, "Mean relative difference (%)", path.c_str());
 		
-		path = "plotsResult/RMSRelative_" + PtName + "_MC_data_MCtot.pdf";
-		drawRelativGraph(gRmpf_flavour_2Dtagging_RMS_MC, gRmpf_flavour_2Dtagging_RMS_data, "RMS relative difference (%)", path.c_str());
+		path = "plotsResult/RMSRelative_" + PtName + "_MC_data_MC.pdf";
+		drawRelativGraph(gRmpf_flavour_2Dtagging_RMS_MC, gRmpf_flavour_2Dtagging_RMS_data, "RMS relative difference (%)", path.c_str());*/
+
+     applyStyle();
+
+     path = "plotsResult/Mean_" + PtName + "_withRatio_MC_MCtruth.pdf";;
+    drawComparisonResponse("c1", gRmpf_flavour_MCtruth_Mean, gRmpf_flavour_2Dtagging_Mean_MC, gRmpf_flavour_2Dtagging_Mean_data, "Response", path, 2, false);
+
+    path = "plotsResult/Mean_" + PtName + "_withRatio_data_MC.pdf";;
+    drawComparisonResponse("c1", gRmpf_flavour_MCtruth_Mean, gRmpf_flavour_2Dtagging_Mean_MC, gRmpf_flavour_2Dtagging_Mean_data, "Response", path, 2, true);
+
+    path = "plotsResult/RMS_" + PtName + "_withRatio_MC_MCtruth.pdf";;
+    drawComparisonResponse("c1", gRmpf_flavour_MCtruth_RMS, gRmpf_flavour_2Dtagging_RMS_MC, gRmpf_flavour_2Dtagging_RMS_data, "RMS", path, 2, false);
+
+    path = "plotsResult/RMS_" + PtName + "_withRatio_data_MC.pdf";;
+    drawComparisonResponse("c1", gRmpf_flavour_MCtruth_RMS, gRmpf_flavour_2Dtagging_RMS_MC, gRmpf_flavour_2Dtagging_RMS_data, "RMS", path, 2, true);
 
 	}	
 
