@@ -52,6 +52,28 @@ std::string getZoneBinName(int zoneBin) {
 		return ""; 
 }
 
+std::string getZoneBinNiceName(int zoneBin) {
+		if(zoneBin==0) {
+			return "uds-enriched";
+		}
+		else if(zoneBin==1) {
+			return "gluons-enriched";
+		}
+		else if(zoneBin==2) {
+			return "c-enriched";
+		}
+		else if(zoneBin==3) {
+			return "b-enriched";
+		}
+		else if(zoneBin==4) {
+			return "uds/gluon-mixed";
+		}
+		else if(zoneBin==5) {
+			return "light c";
+		}
+		return "";
+}
+
 std::string getTaggerBinName(int taggerBin) {
 		if(taggerBin==0) {
 			return "CSV";
