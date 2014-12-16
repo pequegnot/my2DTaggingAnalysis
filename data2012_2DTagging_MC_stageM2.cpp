@@ -34,6 +34,7 @@
 #include <TRandom.h>
 #include <THStack.h>
 #include "TROOT.h"
+#include "TColor.h"
 
 #include "binning.h"
 #include "common.h"
@@ -53,7 +54,15 @@ int main ()
 // 		TFile *f=TFile::Open("input_rootfile/PhotonJet_QCD_PFlowAK5chs.root");
 // 		TFile *f=TFile::Open("input_rootfile/PhotonJet_MC_TOT_PFlowAK5chs.root");
  	
-  	
+    const Int_t NRGBs = 5;
+    const Int_t NCont = 255;
+
+    Double_t stops[NRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
+    Double_t red[NRGBs]   = { 0.00, 0.00, 0.87, 1.00, 0.51 };
+    Double_t green[NRGBs] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
+    Double_t blue[NRGBs]  = { 0.51, 1.00, 0.12, 0.00, 0.00 };
+    TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
+    gStyle->SetNumberContours(NCont); 	
 
 //*****************************************************************************************************
 //
@@ -664,6 +673,8 @@ int main ()
 			//name2DTaggingPlan_check += "_stageM2.pdf";
 			//cLikelihood_vs_csv->SaveAs(name2DTaggingPlan_check.c_str());
 			cLikelihood_vs_csv->SaveAs(histoName.c_str());
+      histoName = "images2DTagging/2DTaggingZones/beforeDividing/" + getFlavourBinName(i) + "_" + my2DTaggingPtBinning.getName(j) + "_stageM2.root";
+      cLikelihood_vs_csv->SaveAs(histoName.c_str());
 
 			v2DTaggingPlan_FlavourPt_divided[i][j] = (TH2F*)v2DTaggingPlan_FlavourPt[i][j]->Clone(v2DTaggingPlan_FlavourPt[i][j]->GetTitle());
 
@@ -673,6 +684,7 @@ int main ()
 
 			cLikelihood_vs_csv->Clear();
 	
+      //v2DTaggingPlan_FlavourPt_divided[i][j]->SetTitle("");
 			v2DTaggingPlan_FlavourPt_divided[i][j]->Draw("colz");
 			v2DTaggingPlan_FlavourPt_divided[i][j]->SetStats(0);
 			v2DTaggingPlan_FlavourPt_divided[i][j]->GetXaxis()->SetRangeUser(0.,1.);
@@ -696,6 +708,12 @@ int main ()
 			name2DTaggingPlan += nameHisto;
 			name2DTaggingPlan += "_stageM2.pdf";
 			cLikelihood_vs_csv->SaveAs(name2DTaggingPlan.c_str());
+      name2DTaggingPlan = "";
+      name2DTaggingPlan = ("images2DTagging/2DTaggingZones/");
+     	name2DTaggingPlan += nameHisto;
+			name2DTaggingPlan += "_stageM2.root";
+			cLikelihood_vs_csv->SaveAs(name2DTaggingPlan.c_str());
+
 			nameHisto = "";
 			name2DTaggingPlan = "";
 // 			nameHisto_check = "";
@@ -736,6 +754,12 @@ int main ()
 			nameHistoFraction = "";
 		}
 	} 
+
+	for(int j=0;j<n2DTaggingPtBins; j++) {
+		for(int i=0; i<nzones; i++) {
+			printLatexTableFlavourRatio(Nuds, Ng, Nc, Nb, NnoMatched, Ntot,vFractionHisto_Pt[j], nameFraction, my2DTaggingPtBinning, i, j);
+		}
+	}
 
 	for(int k=0; k<n2DTaggingPtBins; k++) {
 		for(int j=0; j<nflavours ; j++) {
