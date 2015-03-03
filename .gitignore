@@ -1,0 +1,9 @@
+fitTools*
+*.o
+*.d
+*.so
+*.swp
+*.pdf
+*.root
+*.swo
+*.a
