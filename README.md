@@ -97,17 +97,19 @@ TFile *out = new TFile("output_rootfile/output2DTagging_MC_G.root", "recreate");
 ```
 
 
-gamma+jet
+**gamma+jet**
+
 input_rootfile/PhotonJet_G_PFlowAK5chs.root
 output_rootfile/outputMatrix2DTagging_MC_G.root
 output_rootfile/output2DTagging_MC_G.root
 
-QCD
+**QCD**
+
 input_rootfile/PhotonJet_QCD_PFlowAK5chs.root
 output_rootfile/outputMatrix2DTagging_MC_QCD.root
 output_rootfile/output2DTagging_MC_QCD.root
 
-Total (G+QCD)
+**Total (G+QCD)**
 input_rootfile/PhotonJet_MC_TOT_PFlowAK5chs.root
 output_rootfile/outputMatrix2DTagging_MC_TOT.root
 output_rootfile/output2DTagging_MC_TOT.root
